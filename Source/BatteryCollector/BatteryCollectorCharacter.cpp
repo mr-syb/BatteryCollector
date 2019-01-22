@@ -8,7 +8,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
-
+#include "Components/SphereComponent.h"
+#include "PickUp.h"
+#include "BatteryPickUp.h"
 //////////////////////////////////////////////////////////////////////////
 // ABatteryCollectorCharacter
 
@@ -20,6 +22,10 @@ ABatteryCollectorCharacter::ABatteryCollectorCharacter()
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+
+	InitalPower = 2000.f;
+	CurrentPower = InitalPower;
+
 
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -43,6 +49,12 @@ ABatteryCollectorCharacter::ABatteryCollectorCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	CollectSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollectSphere"));
+	CollectSphere->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	CollectSphere->SetSphereRadius(200.0f);
+
+	BaseSpeed = 300;
+	SpeedFactor = 0.75;
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
@@ -56,6 +68,8 @@ void ABatteryCollectorCharacter::SetupPlayerInputComponent(class UInputComponent
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
+	PlayerInputComponent->BindAction("Collect", IE_Pressed, this, &ABatteryCollectorCharacter::CollectPickups);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ABatteryCollectorCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ABatteryCollectorCharacter::MoveRight);
@@ -76,6 +90,43 @@ void ABatteryCollectorCharacter::SetupPlayerInputComponent(class UInputComponent
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ABatteryCollectorCharacter::OnResetVR);
 }
 
+
+void ABatteryCollectorCharacter::CollectPickups()
+{
+	TArray<AActor*> CollectedActors;
+	CollectSphere->GetOverlappingActors(CollectedActors);
+
+	float CollectedPower = 0.f;
+	for (int32 iCollected = 0; iCollected < CollectedActors.Num(); iCollected++)
+	{
+		APickUp* TestPickUp = Cast<APickUp>(CollectedActors[iCollected]);
+		if (TestPickUp && TestPickUp->IsActive() && !TestPickUp->IsPendingKill())
+		{
+			ABatteryPickUp* TestBatteryPickup = Cast<ABatteryPickUp>(TestPickUp);
+			if (TestBatteryPickup)
+			{
+				CollectedPower = TestBatteryPickup->GetPower();
+			}
+			TestPickUp->WasCollected();
+			TestPickUp->SetIsActive(false);
+		}
+	}
+	if (CollectedPower > 0)
+	{
+		UpdatePower(CollectedPower);
+	}
+}
+
+
+void ABatteryCollectorCharacter::UpdatePower(float PawerChange)
+{
+	CurrentPower += PawerChange;
+
+	GetCharacterMovement()->MaxWalkSpeed = BaseSpeed + SpeedFactor * CurrentPower;
+
+	PowerChangeEffect();
+
+}
 
 void ABatteryCollectorCharacter::OnResetVR()
 {

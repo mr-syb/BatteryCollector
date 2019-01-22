@@ -18,6 +18,10 @@ class ABatteryCollectorCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	/** Follow sphereCompont */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class USphereComponent* CollectSphere;
 public:
 	ABatteryCollectorCharacter();
 
@@ -28,6 +32,15 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	UFUNCTION(BlueprintPure,category = "Power")
+	float GetIntialPower() { return InitalPower; }
+
+	UFUNCTION(BlueprintPure, category = "Power")
+	float GetCurrentPower() { return CurrentPower; }
+
+	UFUNCTION(BlueprintCallable, category = "Power")
+	void UpdatePower(float PawerChange);
 
 protected:
 
@@ -63,10 +76,29 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
 
+	UFUNCTION(BlueprintCallable, category = "Pickup")
+	void CollectPickups();
+
+	UPROPERTY(EditAnywhere, category = "Power", meta = (BlueprintProtected = "True"))
+	float InitalPower;
+	UPROPERTY(EditAnywhere, category = "Power", meta = (BlueprintProtected = "True"))
+	float BaseSpeed;
+	UPROPERTY(EditAnywhere, category = "Power", meta = (BlueprintProtected = "True"))
+	float SpeedFactor;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void PowerChangeEffect();
+private:
+	UPROPERTY(VisibleAnywhere, category = "Power")
+	float CurrentPower;
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	/** Returns SphereCompont subobject **/
+	FORCEINLINE class USphereComponent* GetSphereCompont() const { return CollectSphere; }
+
+
 };
 

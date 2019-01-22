@@ -23,4 +23,28 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintPure, category = "Spawning")
+	FVector	GetRandomPointInVolume();
+
+	UFUNCTION(BlueprintCallable, category = "Spawning")
+	void SetSpawnVolumeActive(bool iShouldActive);
+
+protected:
+	UPROPERTY(EditAnywhere,category = "Spawning")
+	TSubclassOf<class APickUp> WhatToSpawn;
+
+	FTimerHandle SpawnTimer;
+
+	UPROPERTY(EditAnywhere, category = "Spawning")
+	float SpawnDelayRangeHigh;
+	
+	UPROPERTY(EditAnywhere, category = "Spawning")
+	float SpawnDelayRangeLow;
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, category = "Spawning", meta = (AllowPrivateAccess = "true"))
+	class UBoxComponent* WhereToSpawn;
+
+	float SpawnDelay;
+
+	void SpawnPickup();
 };
